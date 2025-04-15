@@ -21,7 +21,6 @@ Welcome to my corner of the code world! 🌍
 
 ## 🛠️ Projects I'm loving right now:
 - **[Food Supply Chain with Blockchain](https://github.com/tanishaf28/FoodSupplyChain)**: Bringing transparency to food supply chains with **Hyperledger Fabric** 🌽🌍  
-- **[Heart Disease Detection using ECG](https://github.com/tanishaf28/HeartDiseaseDetection)**: Predicting heart conditions from **ECG signals** 💓  
 - **[Sleep Disorder Detection with PPG](https://github.com/tanishaf28/SleepDisorderDetection)**: Turning **wearable tech** into a sleep monitor 💤
 
 ## 🌟 Fun facts about me:
