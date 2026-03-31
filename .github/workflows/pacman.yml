@@ -5,6 +5,9 @@ on:
     - cron: "0 */12 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write   # 👈 THIS FIXES git push error
+
 jobs:
   build:
     runs-on: ubuntu-latest
