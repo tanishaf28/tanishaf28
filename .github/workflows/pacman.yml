@@ -4,7 +4,8 @@ on:
   schedule:
     - cron: "0 */12 * * *"  # runs every 12 hours
   workflow_dispatch:
-
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # newer version
 jobs:
   build:
     runs-on: ubuntu-latest
