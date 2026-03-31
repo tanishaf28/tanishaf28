@@ -1,0 +1,22 @@
+name: generate pacman
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"  # runs every 12 hours
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: generate-pacman-game-from-github-contribution-grid
+        uses: abozanona/pacman-contribution-graph@2.3.0
+
+      - name: push pacman output
+        uses: crazy-max/ghaction-github-pages@v3
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
