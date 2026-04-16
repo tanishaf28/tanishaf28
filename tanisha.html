@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanisha</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; }
+#canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+#next-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background: rgba(100,180,255,0.15);
+  color: #a8d8ff;
+  border: 1px solid rgba(100,180,255,0.4);
+  padding: 10px 22px;
+  border-radius: 24px;
+  font-size: 15px;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.2s;
+  z-index: 10;
+}
+#next-btn:hover { background: rgba(100,180,255,0.28); }
+
+#sparkle-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<canvas id="sparkle-canvas"></canvas>
+<button id="next-btn" onclick="window.location.href='index.html'">Next →</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ── Sparkles ── */
+const sc = document.getElementById('sparkle-canvas');
+const sx = sc.getContext('2d');
+let sparkles = [];
+
+function resizeSparkle() {
+  sc.width = window.innerWidth;
+  sc.height = window.innerHeight;
+}
+resizeSparkle();
+window.addEventListener('resize', resizeSparkle);
+
+function spawnSparkle() {
+  sparkles.push({
+    x: Math.random() * sc.width,
+    y: Math.random() * sc.height,
+    r: Math.random() * 2.2 + 0.5,
+    alpha: Math.random() * 0.8 + 0.2,
+    fade: Math.random() * 0.018 + 0.008,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: (Math.random() - 0.5) * 0.4,
+    hue: 190 + Math.random() * 50
+  });
+}
+
+function drawSparkles() {
+  sx.clearRect(0, 0, sc.width, sc.height);
+  for (let i = sparkles.length - 1; i >= 0; i--) {
+    const s = sparkles[i];
+    sx.beginPath();
+    sx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    sx.fillStyle = `hsla(${s.hue}, 100%, 75%, ${s.alpha})`;
+    sx.shadowBlur = 8;
+    sx.shadowColor = `hsla(${s.hue}, 100%, 80%, 0.9)`;
+    sx.fill();
+    sx.shadowBlur = 0;
+    s.x += s.vx;
+    s.y += s.vy;
+    s.alpha -= s.fade;
+    if (s.alpha <= 0) sparkles.splice(i, 1);
+  }
+  if (Math.random() < 0.35) spawnSparkle();
+  requestAnimationFrame(drawSparkles);
+}
+drawSparkles();
+
+/* ── Particles ── */
+let scene, camera, renderer, particles;
+const particleCount = 40000;
+let targetPositions = [];
+let velocities = [];
+let mouse = new THREE.Vector2(-1000, -1000);
+let isTextMode = false;
+
+const textCanvas = document.createElement('canvas');
+const textCtx = textCanvas.getContext('2d');
+textCanvas.width = 800;
+textCanvas.height = 300;
+
+let phase = 'heart';
+let charIndex = 0;
+let phaseTimer = null;
+
+function getHeartPoint(t, u) {
+  const x = 16 * Math.pow(Math.sin(u), 3) * Math.sin(t);
+  const y = (13 * Math.cos(u) - 5 * Math.cos(2 * u) - 2 * Math.cos(3 * u) - Math.cos(4 * u)) * Math.sin(t);
+  const z = 10 * Math.cos(t);
+  return new THREE.Vector3(x * 0.75, y * 0.75, z * 0.75);
+}
+
+function sampleText(text) {
+  if (!text || text.trim() === "") return null;
+  textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+  textCtx.fillStyle = "white";
+  const fontSize = text.length > 8 ? 80 : 110;
+  textCtx.font = `900 ${fontSize}px sans-serif`;
+  textCtx.textAlign = "center";
+  textCtx.textBaseline = "middle";
+  textCtx.fillText(text, textCanvas.width / 2, textCanvas.height / 2);
+  const imageData = textCtx.getImageData(0, 0, textCanvas.width, textCanvas.height).data;
+  const points = [];
+  for (let y = 0; y < textCanvas.height; y++) {
+    for (let x = 0; x < textCanvas.width; x++) {
+      const alpha = imageData[(y * textCanvas.width + x) * 4 + 3];
+      if (alpha > 150) {
+        points.push({
+          x: (x - textCanvas.width / 2) * 0.1,
+          y: -(y - textCanvas.height / 2) * 0.1,
+          z: (Math.random() - 0.5) * 1.5
+        });
+      }
+    }
+  }
+  return points;
+}
+
+function updateTargets(text) {
+  const textPoints = sampleText(text);
+  isTextMode = textPoints !== null && textPoints.length > 0;
+  if (particles) {
+    particles.rotation.x = 0;
+    particles.rotation.y = 0;
+    particles.rotation.z = 0;
+  }
+  for (let i = 0; i < particleCount; i++) {
+    if (isTextMode) {
+      const target = textPoints[i % textPoints.length];
+      targetPositions[i] = {
+        x: target.x + (Math.random() - 0.5) * 0.1,
+        y: target.y + (Math.random() - 0.5) * 0.1,
+        z: target.z + (Math.random() - 0.5) * 0.1
+      };
+    } else {
+      const t = Math.acos(Math.random() * 2 - 1);
+      const u = Math.random() * Math.PI * 2;
+      const p = getHeartPoint(t, u);
+      targetPositions[i] = {
+        x: p.x + (Math.random() - 0.5) * 0.4,
+        y: p.y + (Math.random() - 0.5) * 0.4,
+        z: p.z + (Math.random() - 0.5) * 0.4
+      };
+    }
+  }
+}
+
+const TARGET_WORD = "Tanisha";
+
+function typeChar() {
+  if (charIndex <= TARGET_WORD.length) {
+    updateTargets(TARGET_WORD.substring(0, charIndex));
+    charIndex++;
+    phaseTimer = setTimeout(typeChar, 130);
+  } else {
+    setTimeout(() => {
+      charIndex = 0;
+      updateTargets("");
+      phase = 'heart';
+      phaseTimer = setTimeout(startTyping, 1800);
+    }, 3200);
+  }
+}
+
+function startTyping() {
+  phase = 'typing';
+  charIndex = 0;
+  typeChar();
+}
+
+function init() {
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 35;
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x000000, 1);
+  document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+  const geometry = new THREE.BufferGeometry();
+  const posArray = new Float32Array(particleCount * 3);
+  const colorArray = new Float32Array(particleCount * 3);
+
+  for (let i = 0; i < particleCount; i++) {
+    posArray[i * 3]     = (Math.random() - 0.5) * 200;
+    posArray[i * 3 + 1] = (Math.random() - 0.5) * 200;
+    posArray[i * 3 + 2] = (Math.random() - 0.5) * 200;
+    velocities.push({ x: 0, y: 0, z: 0 });
+
+    /* Blue palette */
+    const t = Math.random();
+    const r = 0.05 + t * 0.25;
+    const g = 0.35 + t * 0.35;
+    const b = 0.85 + t * 0.15;
+    colorArray[i * 3]     = r;
+    colorArray[i * 3 + 1] = g;
+    colorArray[i * 3 + 2] = b;
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+  geometry.setAttribute('color',    new THREE.BufferAttribute(colorArray, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.13,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending
+  });
+
+  particles = new THREE.Points(geometry, material);
+  scene.add(particles);
+
+  updateTargets("");
+
+  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('mousemove', onMouseMove);
+
+  /* Show heart for 2.2s then start typing */
+  setTimeout(startTyping, 2200);
+
+  animate();
+}
+
+function onMouseMove(e) {
+  mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const posAttr = particles.geometry.attributes.position;
+  const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+  vector.unproject(camera);
+  const dir = vector.sub(camera.position).normalize();
+  const distance = -camera.position.z / dir.z;
+  const mPos = camera.position.clone().add(dir.multiplyScalar(distance));
+
+  for (let i = 0; i < particleCount; i++) {
+    let px = posAttr.getX(i);
+    let py = posAttr.getY(i);
+    let pz = posAttr.getZ(i);
+    const target = targetPositions[i];
+    const dx = px - mPos.x, dy = py - mPos.y, dz = pz - mPos.z;
+    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    if (dist < 8) {
+      const force = (8 - dist) / 8;
+      velocities[i].x += (dx / dist) * force * 1.8;
+      velocities[i].y += (dy / dist) * force * 1.8;
+      velocities[i].z += (dz / dist) * force * 1.8;
+    }
+    velocities[i].x += (target.x - px) * 0.08;
+    velocities[i].y += (target.y - py) * 0.08;
+    velocities[i].z += (target.z - pz) * 0.08;
+    velocities[i].x *= 0.78;
+    velocities[i].y *= 0.78;
+    velocities[i].z *= 0.78;
+    posAttr.setXYZ(i, px + velocities[i].x, py + velocities[i].y, pz + velocities[i].z);
+  }
+
+  posAttr.needsUpdate = true;
+  particles.rotation.x = 0;
+  particles.rotation.y = 0;
+  particles.rotation.z = 0;
+  renderer.render(scene, camera);
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
