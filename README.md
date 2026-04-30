@@ -10,11 +10,16 @@
 <div align="center">
 
 ### `> Ship fast, break nothing (hopefully)`
-
 🎓 **Master's @ Concordia University** &nbsp;|&nbsp; 📍 **Montréal, QC**  
 🔭 **Full-Stack Dev** obsessed with AI, distributed systems & UI/UX 
 🏎️ F1 Lunatic: tuning systems like an F1 car<br>🎮 Apex Legends: you'll find me fragging
+<div align="center">
 
+<a href="https://myportfolio-plum-theta.vercel.app/" target="_blank">
+  <img src="https://img.shields.io/badge/%20View%20Portfolio-0f172a?style=for-the-badge&logo=vercel&logoColor=white&labelColor=020617" />
+</a>
+
+</div>
 </div>
 
 ---
